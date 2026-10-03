@@ -2,9 +2,9 @@
 
 Mobil öncelikli, Türkçe MMA kariyer oyununun oynanabilir prototipi.
 
-**[Oyunu aç](https://cage-mma-yolculuk.c-kutay.chatgpt.site/)**
+**[iPhone / Safari: Oyunu aç](https://cankutayortac.github.io/cage-mma-simulator/)**
 
-Oyun bağlantısı Sites üzerinde yayınlanır ve sahibinin ChatGPT hesabıyla giriş gerektirebilir. Bu GitHub deposu kaynak kodunu ayrı olarak barındırır; GitHub'a yapılan değişiklikler mevcut oyun bağlantısını otomatik güncellemez.
+Oyun GitHub Pages üzerinden herkese açık yayınlanır; giriş gerekmez. Yayın kaynağı `gh-pages` dalının kök klasörüdür. Geliştirme kaynakları `main` dalındadır.
 
 ## iPhone'da oyna
 
@@ -29,6 +29,17 @@ python -m http.server 8000 --directory dist
 ```
 
 Tarayıcıda http://localhost:8000 adresini aç. JavaScript modülleri kullanıldığı için `index.html` dosyasını doğrudan çift tıklamak yerine HTTP sunucusu kullan.
+
+## GitHub Pages yayını
+
+`dist` klasöründeki değişiklikleri `main` dalına commit ettikten sonra:
+
+```sh
+git push origin main
+git subtree push --prefix dist origin gh-pages
+```
+
+GitHub, `gh-pages` güncellendiğinde oyunu yeniden yayınlar. Yalnız `main` dalına push yapmak oyun yayınını güncellemez.
 
 ## Testler
 
