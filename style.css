@@ -5,3 +5,83 @@
 
 /* CAGE iOS standalone safe area */
 @media(max-width:800px){.sidebar{padding-top:calc(20px + env(safe-area-inset-top))}.topbar{top:calc(17px + env(safe-area-inset-top))}}
+/* v0.2 — stable controls, persistent status and readable fight presentation */
+html,body{touch-action:manipulation;scroll-behavior:auto}
+button,a,input,select,summary{touch-action:manipulation}
+button{-webkit-user-select:none;user-select:none}
+main{overflow-anchor:none}
+.vitals{position:sticky;top:0;z-index:9;background:var(--bg);border-bottom:1px solid var(--edge);padding:14px 0;gap:12px 25px;box-shadow:0 8px 16px #10141355}
+.vital-head{font-size:14px}.vital-head b{font-size:15px;font-variant-numeric:tabular-nums}
+.vital-context{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted)}
+.vital-context strong{font-size:16px;color:var(--lime);font-variant-numeric:tabular-nums}
+.portrait-skills{position:absolute;right:16px;top:65px;width:138px;padding:13px;background:#101913ed;border:1px solid #566447;border-radius:8px;pointer-events:none;box-shadow:0 8px 20px #0003}
+.portrait-skills-title{display:block;font-size:11px;color:var(--lime);font-weight:700;letter-spacing:1.2px;margin-bottom:11px}
+.portrait-skill{display:grid;grid-template-columns:1fr auto;gap:4px 8px;margin-top:9px;font-size:13px;line-height:1.2;color:#dce3d8}
+.portrait-skill strong{font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
+.portrait-skill i{grid-column:1/-1;height:3px;border-radius:3px;background:linear-gradient(to right,var(--lime) var(--skill),#354131 var(--skill))}
+body:not(.is-fighting) #scene{right:135px}
+.scene-label{max-width:calc(100% - 95px);line-height:1.5}
+.is-fighting .portrait-skills{display:none}
+.fight-stage .stage-card{min-height:525px}
+.fight-stage #scene{top:144px}
+.fight-stage .scene-top{top:13px;left:16px;right:16px}
+#fight-hud{top:60px;left:0;right:0;padding:8px 17px 13px;background:#141d17;min-height:84px;border-bottom:1px solid #394631}
+.fight-head{grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);gap:12px}
+.fight-person strong{display:block;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fight-person small{display:block;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums}
+.fight-person .bar{margin:7px 0 5px}
+.round{background:#243120;padding:5px 4px;font-size:11px;line-height:1.3}
+.round strong{font-size:24px;line-height:1.15;margin:2px 0}
+.round>span{font-size:10px;color:#c1d1b2}
+.commentary-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;letter-spacing:1px;color:var(--lime);font-weight:700}
+#event-time{font-size:12px;color:var(--muted);letter-spacing:0;font-weight:400;white-space:nowrap}
+.fight-log{font-size:17px;line-height:1.65;color:var(--text);min-height:112px;padding:14px 16px;border:1px solid #48563d;border-left:3px solid var(--lime);background:#121a14;border-radius:6px;overflow-wrap:anywhere}
+.fight-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.fight-controls button{min-height:46px;padding:10px 7px;font-size:13px}
+.tactics-label{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1.2px;margin-top:6px}
+#tactic-description{font-size:14px;line-height:1.5;min-height:42px}
+.fight-history{margin-top:22px;background:var(--panel);border:1px solid var(--edge);border-radius:8px;overflow:hidden}
+.fight-history summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;cursor:pointer;list-style:none;font-weight:700;min-height:56px}
+.fight-history summary::after{content:'+';font-size:23px;color:var(--lime)}
+.fight-history[open] summary::after{content:'−'}
+.fight-history summary::-webkit-details-marker{display:none}
+#fight-history-count{margin-left:auto;color:var(--muted);font-size:13px;font-weight:400}
+.fight-history ol{list-style:none;margin:0;padding:0 18px}
+.fight-history li{padding:15px 0;border-top:1px solid var(--edge);font-size:15px;line-height:1.6}
+.fight-history li>span{font-size:12px;color:var(--orange);display:block;margin-bottom:5px}
+.fight-history li p{overflow-wrap:anywhere}
+@media(max-width:800px){
+ html{scroll-padding-top:calc(106px + env(safe-area-inset-top))}
+ main{padding-left:16px;padding-right:16px}
+ .topbar .cash{display:none}
+ .vitals,.is-fighting .vitals{display:grid;top:0;padding:calc(11px + env(safe-area-inset-top)) 0 11px;gap:9px 14px;margin-top:14px}
+ .vital-head{font-size:12px;margin-bottom:6px}.vital-head b{font-size:14px}
+ .vital-context{font-size:12px}.vital-context strong{font-size:15px}
+ .portrait-skills{top:59px;right:12px;width:126px;padding:11px}
+ .portrait-skills-title{font-size:10px;letter-spacing:1px;margin-bottom:8px}
+ .portrait-skill{font-size:12px;margin-top:9px}.portrait-skill strong{font-size:14px}
+ body:not(.is-fighting) #scene{right:115px}
+ .fighter-caption h2{font-size:30px}.fighter-caption{padding-left:16px;padding-right:16px}
+ .is-fighting .stage-layout{margin-top:14px;gap:12px}
+ .is-fighting .stage-card{min-height:clamp(350px,49dvh,440px)}
+ .is-fighting #scene{top:132px}
+ .is-fighting #fight-hud{top:45px;padding:8px 12px 10px;min-height:87px}
+ .is-fighting .scene-top{top:8px;left:12px;right:12px}
+ .fight-head{gap:8px;grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr)}
+ .fight-person strong{font-size:12px}.fight-person small{font-size:11px;line-height:1.45}
+ .round{font-size:10px}.round strong{font-size:21px}
+ .is-fighting .context-panel{display:flex;padding:16px;gap:12px}
+ .is-fighting .fight-log{font-size:16px;line-height:1.6;min-height:103px;padding:12px 14px}
+ .is-fighting #tactic-description{font-size:13px;line-height:1.5;min-height:39px}
+ .is-fighting .fight-controls button{font-size:12px;min-height:44px;padding:8px 5px}
+ .is-fighting .tactics button{min-height:54px;font-size:12px}
+ .commentary-heading{font-size:11px;letter-spacing:1px}#event-time{font-size:11px}
+ .tactics-label{font-size:11px;margin:1px 0 -4px}
+ .fight-history summary{font-size:15px;padding:16px}
+ .fight-history li{font-size:15px}
+}
+
+#fight-hud:empty,#fight-result:empty{display:none}
+#fight-result .result{position:static;padding:20px 16px;background:#202d1b;border:1px solid #607740;border-radius:8px;backdrop-filter:none}
+#fight-result .result h2{font-size:38px}
+#fight-result .result p{font-size:14px}
