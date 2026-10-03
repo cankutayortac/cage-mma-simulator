@@ -1,0 +1,13 @@
+{
+  "name": "cage-mma-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mobile-first MMA career simulator prototype",
+  "scripts": {
+    "test": "node tests/engine.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

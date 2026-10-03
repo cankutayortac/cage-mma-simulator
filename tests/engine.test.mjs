@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import * as E from '../dist/engine.js';
+let checks=0;const test=(name,fn)=>{fn();checks++;console.log('PASS '+name)};
+const fresh=()=>{let s=E.initial();s.seed=42;return s};
+test('separate skills and training resources',()=>{let s=fresh(),b=s.skills.bjj;E.train(s,'boxing');assert(s.skills.boxing>15);assert.equal(s.skills.bjj,b);assert.equal(s.energy,72)});
+test('invalid training is atomic',()=>{for(const key of ['toString','constructor','nope']){const s=fresh(),before=JSON.stringify(s);assert.throws(()=>E.train(s,key));assert.equal(JSON.stringify(s),before)}});
+test('zero resource recovery remains possible',()=>{let s=fresh();s.cash=s.energy=s.food=s.sleep=s.health=0;E.recover(s,'sleep');E.recover(s,'help');E.recover(s,'job');assert.equal(s.cash,110)});
+test('meals do not overdraft',()=>{let s=fresh();s.cash=0;const before=JSON.stringify(s);assert.throws(()=>E.recover(s,'meal'));assert.equal(JSON.stringify(s),before)});
+test('gym and coach prices applied to relevant session',()=>{let s=fresh();s.cash=1000;E.chooseGym(s,1);E.chooseCoach(s,1);assert.equal(s.cash,350);assert.equal(E.trainingCost(s,'boxing'),40);assert.equal(E.trainingCost(s,'bjj'),20);assert.equal(E.trainingCost(s,'rope'),0)});
+test('locked league cannot be entered',()=>{let s=fresh();assert.throws(()=>E.startFight(s,2));assert.equal(s.fight,null)});
+test('move needs level and two sessions',()=>{let s=fresh();assert.throws(()=>E.train(s,'boxing','hook'));s.skills.boxing=25;E.train(s,'boxing','hook');assert.equal(s.moves.hook,1);E.train(s,'boxing','hook');assert.equal(s.moves.hook,2)});
+test('active fight survives serialization exactly',()=>{let s=fresh();E.startFight(s);for(let i=0;i<8;i++)E.stepFight(s);const copy=JSON.parse(JSON.stringify(s));assert(E.validSave(copy));E.stepFight(s);E.stepFight(copy);assert.deepEqual(s,copy)});
+test('fight ends and pays only once',()=>{let s=fresh();E.startFight(s);for(let i=0;i<65;i++)E.stepFight(s);assert(s.fight.done);assert.equal(s.history.length,1);let cash=s.cash;for(let i=0;i<10;i++)E.stepFight(s);assert.equal(s.cash,cash);assert(E.validSave(s))});
+test('malformed fight saves rejected',()=>{for(const field of ['hp','st','maxHp','maxSt','score']){let s=fresh();E.startFight(s);s.fight[field]=[];assert(!E.validSave(s))}for(const field of ['phase','top','last']){let s=fresh();E.startFight(s);delete s.fight[field];assert(!E.validSave(s))}let s=fresh();E.startFight(s);s.fight.done=true;assert(!E.validSave(s))});
+test('all fights remain finite across 300 seeds and tactics',()=>{for(let seed=1;seed<=300;seed++){let s=fresh();s.seed=seed;for(let k of Object.keys(s.skills))s.skills[k]=seed%100;E.startFight(s);E.tactic(s,['balanced','strike','ground','defend'][seed%4]);for(let t=0;t<61;t++)E.stepFight(s);assert(s.fight.done);assert(E.validSave(s));assert(s.cash>=0)}});
+test('ground control unlock changes combat',()=>{let changed=false;for(let seed=1;seed<50;seed++){let s=fresh();s.seed=seed;s.skills.bjj=60;s.skills.wrestling=60;E.startFight(s);E.tactic(s,'ground');s.fight.phase='ground';const b=structuredClone(s);b.moves.control=2;for(let i=0;i<60;i++){E.stepFight(s);E.stepFight(b)}if(JSON.stringify(s.fight)!==JSON.stringify(b.fight))changed=true}assert(changed)});
+test('triangle can actually be used',()=>{let seen=false;for(let seed=1;seed<80;seed++){let s=fresh();s.seed=seed;s.skills.bjj=75;E.startFight(s);E.tactic(s,'ground');s.fight.phase='ground';s.moves.armbar=s.moves.triangle=2;for(let i=0;i<60;i++){E.stepFight(s);if(s.fight.log.includes('Üçgen'))seen=true}}assert(seen)});
+console.log(checks+' meaningful checks passed');
