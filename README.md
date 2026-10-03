@@ -20,6 +20,17 @@ Bağlantıyı Safari'de aç. İstersen Paylaş → Ana Ekrana Ekle yoluyla kısa
 - İzlenebilir 3B maçlar; dengeli, ayakta baskı, yere al ve savunma taktikleri.
 - Kuvvete bağlı görsel kas gelişimi, tarayıcı kaydı ve JSON kayıt aktarımı.
 
+## v0.3: hazırlık kampı ve denge
+
+- Maçı kabul ettiğinde rakip sabitlenir ve 7 oyun günlük kamp başlar. Tarih geldiğinde maç seni bekler; yemek, uyku ve dinlenme hâlâ kullanılabilir.
+- Rakip dosyası güçlü/zayıf yönleri, gerçek önceki karşılaşmalarınızı ve köşe önerisini gösterir. Mesafe/gard, yere alınma savunması ve yerden kaçış hazırlığı yalnız ilgili maça etki eder.
+- En fazla dört öğrenilmiş teknik maç setine seçilir. Temel hareketler daima kullanılabilir; rakipler de seviyelerine uygun teknikler kullanır.
+- İlk ev antrenmanı yaklaşık 0,9 beceri kazandırır. Aynı gün tekrarlar daha az verimli, yük birikimi maça yansır. Uyku ve dinlenme yükü azaltır.
+- İlerleme için yer altında 3, amatörde 4, profesyonelde 6 lig galibiyeti gerekir; alt lig maçları üst lig ilerlemesini artırmaz. Dünya liginde 7 galibiyet kemer getirir.
+- Eski kayıtların para, beceri, hareket ve açık ligleri korunur. Devam eden eski maçlar tamamlanabilir.
+
+Dengeyi `npm run balance` ile yeniden ölçebilirsin. İlk rakip, dengeli taktik ve 2.000 tohumla: hazırlıksız %17,3; 21 seanslık gerçek bütçeli kamp %64,2; aynı beceriler hazırlık bonusu olmadan %49,2; yüksek yükle %21,6. Bunlar belirli senaryonun ölçümleri, tek bir maç için kazanma garantisi değildir.
+
 ## v0.2 güncellemesi
 
 - Aksiyon başına 3,6–6 saniyelik normal izleme, 0,5× / 1× / 2× hız ve gerçek animasyon duraklatma.
@@ -57,18 +68,22 @@ Node.js 22 veya üstü ile:
 npm test
 ```
 
-26 kontrol; ekonomi, beceri ayrımı, hareket öğrenimi, maçın sonlanması, kayıt devamlılığı, ödülün tek kez verilmesi, aksiyon geçmişi ve farklı tohumlarla 300 maç simülasyonunu kapsar. Zamanlayıcı testleri duraklatma, hız değiştirme ve okuma süresini doğrular.
+51 kontrol; ekonomi, beceri ayrımı, hareket öğrenimi, maçın sonlanması, kayıt devamlılığı, ödülün tek kez verilmesi, aksiyon geçmişi ve farklı tohumlarla 300 maç simülasyonunu kapsar. Kamp ve kayıt geçişi testleri tarih sınırları, hazırlık, yük, teknik seçimi ve lig ilerlemesini doğrular. Zamanlayıcı testleri duraklatma, hız değiştirme ve okuma süresini doğrular.
 
 ## Kaynak yapısı
 
 | Dosya | Görevi |
 | --- | --- |
+| `dist/camp.js` | Hazırlık kampı, odak çalışmaları ve antrenman yükü |
+| `dist/camp-ui.js` | Kamp, rakip dosyası ve teknik seti arayüzü |
 | `dist/engine.js` | İhtiyaçlar, ekonomi, antrenman ve maç simülasyonu |
 | `dist/scene.js` | 3B dövüşçüler, ortam ve animasyon |
 | `dist/app.js` | Arayüz, işlemler ve cihaz kaydı |
 | `dist/playback.js` | Okuma süresi, hız ve duraklatma zamanlayıcısı |
 | `dist/style.css` | Mobil ve masaüstü görünümü |
 | `tests/engine.test.mjs` | Oyun mantığı kontrolleri |
+| `tests/camp.test.mjs` | Kamp ve hazırlık kuralları |
+| `tests/balance.mjs` | Tekrarlanabilir zorluk raporu |
 | `tests/playback.test.mjs` | Maç izleme zamanlayıcısı kontrolleri |
 
 ## İlk sürümün sınırları
