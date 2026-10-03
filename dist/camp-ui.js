@@ -1,5 +1,5 @@
-import * as E from './engine.js?v=0.3.0';
-import * as C from './camp.js?v=0.3.0';
+import * as E from './engine.js?v=0.4.0';
+import * as C from './camp.js?v=0.4.0';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>'₺'+Math.round(n).toLocaleString('tr-TR');
@@ -19,7 +19,7 @@ export function campBanner(s){
 
 export function scouting(s,enemy){
  const advice=C.scouting(s,enemy),skills=['boxing','kickboxing','wrestling','bjj','stamina','strength'],meetings=s.history.filter(h=>h.name===enemy.name).slice(0,3);
- return `<article class="scout-panel"><div class="scout-heading"><div><span class="eyebrow">RAKİP DOSYASI</span><h2>${esc(enemy.name)}</h2></div><span class="style-badge">${E.LABELS[enemy.style]}</span></div><p class="scout-key"><span>Sen</span><span>Rakip</span></p><div class="scout-stats">${skills.map(k=>`<div class="scout-stat"><span>${E.LABELS[k]}</span><strong>${Math.floor(s.skills[k])}<i>/</i><b>${Math.floor(enemy.skills[k])}</b></strong><div class="compare-bars"><i style="width:${s.skills[k]}%"></i><b style="width:${enemy.skills[k]}%"></b></div></div>`).join('')}</div><div class="scout-notes"><p><strong>Güçlü yönü</strong>${esc(advice.strength)}</p><p><strong>Fırsatın</strong>${esc(advice.weakness)}</p></div><div class="coach-note"><span class="eyebrow">${s.coach?esc(E.COACHES[s.coach].name)+' · KÖŞE NOTU':'KENDİ ANALİZİN'}</span><p>${esc(advice.recommendation)}</p></div><div class="scout-meetings"><span class="eyebrow">ÖNCEKİ KARŞILAŞMALARINIZ</span>${meetings.length?meetings.map(h=>`<p>${h.day}. gün · ${E.LEAGUES[h.tier].name}<strong class="${h.won?'win':'loss'}">${h.draw?'Berabere':h.won?'Kazandın':'Kaybettin'} · ${esc(h.method)}</strong></p>`).join(''):'<p>Bu rakiple ilk karşılaşman. Henüz bir maç kaydın yok.</p>'}</div></article>`;
+ return `<article class="scout-panel"><div class="scout-heading"><div><span class="eyebrow">RAKİP DOSYASI</span><h2>${esc(enemy.name)}</h2></div><span class="style-badge">${E.LABELS[enemy.style]}</span></div><p class="scout-key"><span>Sen</span><span>Rakip</span></p><div class="scout-stats">${skills.map(k=>`<div class="scout-stat"><span>${E.LABELS[k]}</span><strong>${Math.floor(s.skills[k])}<i>/</i><b>${Math.round(enemy.skills[k])}</b></strong><div class="compare-bars"><i style="width:${s.skills[k]}%"></i><b style="width:${enemy.skills[k]}%"></b></div></div>`).join('')}</div><div class="scout-notes"><p><strong>Güçlü yönü</strong>${esc(advice.strength)}</p><p><strong>Fırsatın</strong>${esc(advice.weakness)}</p></div><div class="coach-note"><span class="eyebrow">${s.coach?esc(E.COACHES[s.coach].name)+' · KÖŞE NOTU':'KENDİ ANALİZİN'}</span><p>${esc(advice.recommendation)}</p></div><div class="scout-meetings"><span class="eyebrow">ÖNCEKİ KARŞILAŞMALARINIZ</span>${meetings.length?meetings.map(h=>`<p>${h.day}. gün · ${E.LEAGUES[h.tier].name}<strong class="${h.won?'win':'loss'}">${h.draw?'Berabere':h.won?'Kazandın':'Kaybettin'} · ${esc(h.method)}</strong></p>`).join(''):'<p>Bu rakiple ilk karşılaşman. Henüz bir maç kaydın yok.</p>'}</div></article>`;
 }
 
 export function campOverview(s){

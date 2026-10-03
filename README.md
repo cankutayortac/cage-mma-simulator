@@ -20,6 +20,14 @@ Bağlantıyı Safari'de aç. İstersen Paylaş → Ana Ekrana Ekle yoluyla kısa
 - İzlenebilir 3B maçlar; dengeli, ayakta baskı, yere al ve savunma taktikleri.
 - Kuvvete bağlı görsel kas gelişimi, tarayıcı kaydı ve JSON kayıt aktarımı.
 
+## v0.4: yaşayan şehir ve aktif antrenman
+
+- **Şehir:** günlük fırsatlar, itibar, sponsor anlaşmaları ve ev yükseltmeleri. Seçenekler kaynak ve zaman bedellerini gösterir; aynı gün yalnız bir fırsat seçilir.
+- **Ritimle çalış:** üç zamanlamalı tekrarın ortalaması, normal bir seansa en fazla %25 ek beceri kazancı verir. Tamamlanmadan iptal edilen çalışma kaynak harcamaz.
+- **Canlı köşe:** her raund iki talimat, talimatlar arasında üç aksiyon bekleme. Baskı ek nefes harcar; kaçış pozisyona odaklanır; nefes toplamak sonraki hücumdan vazgeçtirir.
+- **Geliştirilmiş sahne:** stile göre duruş ve ayak oyunu, darbe tepkileri, temas efektleri, lig atmosferi ve antrenmana yanıt veren hareketler.
+- Kamp, rakip analizi, seçili teknikler, antrenman yükü ve önceki mobil kontroller bu sürümün içindedir.
+
 ## v0.3: hazırlık kampı ve denge
 
 - Maçı kabul ettiğinde rakip sabitlenir ve 7 oyun günlük kamp başlar. Tarih geldiğinde maç seni bekler; yemek, uyku ve dinlenme hâlâ kullanılabilir.
@@ -68,12 +76,15 @@ Node.js 22 veya üstü ile:
 npm test
 ```
 
-51 kontrol; ekonomi, beceri ayrımı, hareket öğrenimi, maçın sonlanması, kayıt devamlılığı, ödülün tek kez verilmesi, aksiyon geçmişi ve farklı tohumlarla 300 maç simülasyonunu kapsar. Kamp ve kayıt geçişi testleri tarih sınırları, hazırlık, yük, teknik seçimi ve lig ilerlemesini doğrular. Zamanlayıcı testleri duraklatma, hız değiştirme ve okuma süresini doğrular.
+77 kontrol; ekonomi, beceri ayrımı, hareket öğrenimi, maçın sonlanması, ödülün tek kez verilmesi, aksiyon geçmişi ve farklı tohumlarla 300 maç simülasyonunu kapsar. Kamp testleri tarih sınırları, hazırlık, yük, teknik seçimi ve lig ilerlemesini doğrular. Şehir, sponsor, ev, ritim antrenmanı ve köşe talimatları ayrıca sınanır. Zamanlayıcı testleri duraklatma, hız değiştirme ve okuma süresini doğrular.
 
 ## Kaynak yapısı
 
 | Dosya | Görevi |
 | --- | --- |
+| `dist/world.js` | Şehir fırsatları, itibar, ev ve sponsor ekonomisi |
+| `dist/world-ui.js` | Şehir haritası ve kariyer seçenekleri |
+| `dist/activity.js` | Aktif antrenman zamanlama puanı |
 | `dist/camp.js` | Hazırlık kampı, odak çalışmaları ve antrenman yükü |
 | `dist/camp-ui.js` | Kamp, rakip dosyası ve teknik seti arayüzü |
 | `dist/engine.js` | İhtiyaçlar, ekonomi, antrenman ve maç simülasyonu |
@@ -82,11 +93,13 @@ npm test
 | `dist/playback.js` | Okuma süresi, hız ve duraklatma zamanlayıcısı |
 | `dist/style.css` | Mobil ve masaüstü görünümü |
 | `tests/engine.test.mjs` | Oyun mantığı kontrolleri |
+| `tests/world.test.mjs` | Şehir ekonomisi ve ödül sınırları |
+| `tests/activity.test.mjs` | Ritim puanı ve aktif çalışma sınırları |
 | `tests/camp.test.mjs` | Kamp ve hazırlık kuralları |
 | `tests/balance.mjs` | Tekrarlanabilir zorluk raporu |
 | `tests/playback.test.mjs` | Maç izleme zamanlayıcısı kontrolleri |
 
-## İlk sürümün sınırları
+## Prototipin sınırları
 
 Animasyonlar stilizedir; ayrıntılı insan rigleri veya gerçekçi MMA hareketleri henüz yoktur. Spor salonları ortak temel sahneyi kullanır. Bulut kaydı, çevrimdışı oynama ve çok oyunculu mod yoktur. Mobil ekran boyutlarında test edildi; gerçek iPhone donanımında doğrulanmadı.
 

@@ -178,4 +178,83 @@ test('malformed optional progression, equipment and preparation fields are rejec
  const good=fresh();ready(good);
  for(const change of [f=>f.playerMoves=['laser'],f=>f.performance=[1,2],f=>f.prep.distance=2,f=>f.enemy.moves=['laser']]){const s=structuredClone(good);change(s.fight);assert(!E.validSave(s))}
 });
+test('active drills consume one ordinary session and add at most twenty-five percent gain',()=>{
+ for(const score of [0,50,100])for(const key of ['boxing','rope','strength']){
+  const normal=fresh(),active=structuredClone(normal),skill=key==='rope'?'stamina':key,before=normal.skills[skill];
+  E.train(normal,key);E.trainActive(active,key,score);
+  assert(Math.abs(active.skills[skill]-before-(normal.skills[skill]-before)*(1+score/400))<1e-10);
+  for(const field of ['cash','hours','energy','food','sleep','health','sessions','fatigue','trainingDay','moves'])assert.deepEqual(active[field],normal[field],field);
+ }
+ const capped=fresh();capped.skills.strength=99.9;E.trainActive(capped,'strength',100);assert.equal(capped.skills.strength,100);
+});
+test('invalid active drill submissions and unaffordable sessions are atomic',()=>{
+ for(const score of [-1,101,.5,NaN,Infinity,'100',null,undefined]){const s=fresh(),before=JSON.stringify(s);assert.throws(()=>E.trainActive(s,'boxing',score));assert.equal(JSON.stringify(s),before)}
+ for(const setup of [s=>{s.cash=0;s.gym=1;s.ownedGyms=[0,1]},s=>{E.bookFight(s);s.hours=s.camp.dueAt},s=>ready(s)]){
+  const s=fresh();setup(s);const before=JSON.stringify(s);assert.throws(()=>E.trainActive(s,'boxing',100));assert.equal(JSON.stringify(s),before);
+ }
+});
+test('corner commands share two charges, wait three exchanges and never create extra events',()=>{
+ const s=fresh();ready(s);const before=JSON.stringify(s),id=s.fight.id,log=s.fight.log;
+ assert.deepEqual(E.cornerStatus(s),{remaining:2,cooldown:0,active:null,label:'2/2 köşe komutu · 1. raund'});assert.equal(JSON.stringify(s),before);
+ E.corner(s,'pressure');assert.equal(s.fight.tick,0);assert.equal(s.fight.id,id);assert.equal(s.fight.events.length,0);assert.equal(s.fight.log,log);
+ assert.equal(E.cornerStatus(s).remaining,1);assert.equal(E.cornerStatus(s).cooldown,3);
+ const issued=JSON.stringify(s);assert.throws(()=>E.corner(s,'escape'),/beklemelisin/);assert.equal(JSON.stringify(s),issued);
+ for(let i=0;i<3;i++){E.stepFight(s);assert.equal(E.cornerStatus(s).cooldown,2-i)}
+ assert.match(s.fight.events[0].text,/Köşe komutu: Baskı kur/);assert.equal(s.fight.events.length,3);E.corner(s,'breathe');assert.equal(E.cornerStatus(s).remaining,0);
+ for(let i=0;i<4;i++)E.stepFight(s);assert.throws(()=>E.corner(s,'escape'),/iki köşe komutunu/);assert(E.validSave(s));
+});
+test('breathing gives twelve stamina now and trades the next player attack for guard',()=>{
+ const s=fresh();ready(s);s.fight.tick=1;s.fight.st[0]=20;const enemyHp=s.fight.hp[1];
+ E.corner(s,'breathe');assert.equal(s.fight.st[0],32);E.stepFight(s);
+ assert.equal(s.fight.last.attacker,0);assert.equal(s.fight.last.move,'guard');assert.equal(s.fight.last.outcome,'rest');assert.equal(s.fight.hp[1],enemyHp);
+ assert(s.fight.st[0]<34,'breathing guard must not grant another free recovery');assert.equal(s.fight.corner.active,null);assert.match(s.fight.log,/bu aksiyonda saldırmıyor/);
+});
+test('pressure improves a hit but charges extra stamina and expires after two attacks',()=>{
+ let compared=0;
+ for(let seed=1;seed<=100;seed++){
+  const base=fresh();base.seed=seed;ready(base);base.fight.tick=1;base.fight.tactic='strike';base.fight.hp=[100000,100000];const boosted=structuredClone(base);
+  E.corner(boosted,'pressure');E.stepFight(base);E.stepFight(boosted);
+  if(base.fight.last.outcome==='hit'&&boosted.fight.last.outcome==='hit'){
+   const damage=100000-base.fight.hp[1],boostDamage=100000-boosted.fight.hp[1];assert(Math.abs(boostDamage-damage*1.12)<1e-8);assert(Math.abs(base.fight.st[0]-boosted.fight.st[0]-3)<1e-8);compared++;
+  }
+  assert.equal(boosted.fight.corner.turns,1);E.stepFight(boosted);boosted.fight.phase='stand';E.stepFight(boosted);assert.equal(boosted.fight.corner.turns,0);assert.equal(boosted.fight.corner.active,null);
+ }
+ assert(compared>20);
+ const defensive=fresh();defensive.seed=1;ready(defensive);defensive.fight.tick=1;defensive.fight.tactic='defend';E.corner(defensive,'pressure');E.stepFight(defensive);
+ assert.equal(defensive.fight.last.move,'guard');assert.equal(defensive.fight.corner.turns,2,'guard must not spend an attacking charge');
+});
+test('escape command overrides a grappling tactic and improves takedown defense',()=>{
+ const s=fresh();s.skills.bjj=75;ready(s);s.fight.tick=1;s.fight.phase='ground';s.fight.top=1;s.fight.tactic='ground';E.corner(s,'escape');E.stepFight(s);
+ assert.equal(s.fight.last.move,'escape');assert.equal(s.fight.corner.turns,1);assert.match(s.fight.log,/Köşe yönlendirmesi/);
+ const results=[0,0];
+ for(let seed=1;seed<=300;seed++){
+  const base=fresh();base.seed=seed;ready(base);base.fight.enemy.style='wrestling';base.fight.enemy.skills.wrestling=35;const escaped=structuredClone(base);E.corner(escaped,'escape');
+  for(const [i,state] of [base,escaped].entries()){E.stepFight(state);results[i]+=state.fight.last.move==='takedown'&&state.fight.last.outcome==='success'}
+ }
+ assert(results[1]<results[0]);
+});
+test('round breaks replenish command charges and discard unused effects',()=>{
+ const s=fresh();ready(s);s.fight.tick=19;s.fight.hp=[100000,100000];E.corner(s,'pressure');E.stepFight(s);
+ assert.equal(s.fight.tick,20);assert.deepEqual(E.cornerStatus(s),{remaining:2,cooldown:0,active:null,label:'2/2 köşe komutu · 2. raund'});
+ E.corner(s,'escape');s.fight.tick=39;E.stepFight(s);assert.equal(E.cornerStatus(s).remaining,2);assert.equal(s.fight.corner.round,3);assert.equal(s.fight.corner.active,null);
+});
+test('queued commands survive a saved game and malformed command saves are rejected',()=>{
+ const good=fresh();ready(good);E.corner(good,'breathe');const copy=JSON.parse(JSON.stringify(good));assert(E.validSave(copy));E.stepFight(good);E.stepFight(copy);assert.deepEqual(copy,good);
+ const bad=[c=>c.used=3,c=>c.lastTick=-1,c=>c.round=4,c=>c.turns=3,c=>c.active='toString',c=>c.note='laser',c=>delete c.lastTick];
+ for(const corrupt of bad){const s=structuredClone(good);corrupt(s.fight.corner);assert(!E.validSave(s))}
+ const noFight=fresh(),before=JSON.stringify(noFight);assert.throws(()=>E.corner(noFight,'pressure'));assert.equal(JSON.stringify(noFight),before);
+ assert.throws(()=>E.corner(good,'toString'));while(!good.fight.done)E.stepFight(good);const done=JSON.stringify(good);assert.throws(()=>E.corner(good,'breathe'));assert.equal(JSON.stringify(good),done);
+});
+test('world rewards are applied through fight completion once and validated on reload',()=>{
+ const s=fresh();s.world.reputation=4;s.world.sponsor='corner';ready(s);s.fight.tick=59;s.fight.hp=[100000,100000];s.fight.score=[10000,0];const before=s.cash;
+ E.stepFight(s);assert.equal(s.fight.result.winner,0);assert.equal(s.fight.result.sponsorReward,40);assert.equal(s.cash,before+E.LEAGUES[0].purse+40);assert.equal(s.world.reputation,6);assert.equal(s.world.lastFight,s.fight.id);assert(s.fight.result.worldApplied);assert(E.validSave(s));
+ const paid=JSON.stringify(s);E.stepFight(s);assert.equal(JSON.stringify(s),paid);
+ const malformed=structuredClone(s);malformed.fight.result.sponsorReward=NaN;assert(!E.validSave(malformed));
+ const badWorld=structuredClone(s);badWorld.world.reputation=101;assert(!E.validSave(badWorld));
+});
+test('owned homes add only their bounded recovery bonus after base recovery',()=>{
+ const s=fresh();s.world.home=1;s.world.reputation=8;s.health=30;s.energy=10;s.fatigue=70;E.recover(s,'rest');
+ assert.equal(s.health,46);assert.equal(s.energy,44);assert.equal(s.fatigue,54);
+ s.health=20;s.energy=5;s.fatigue=70;E.recover(s,'sleep');assert.equal(s.health,56);assert.equal(s.energy,80);assert.equal(s.fatigue,24);
+});
 console.log(checks+' meaningful checks passed');
