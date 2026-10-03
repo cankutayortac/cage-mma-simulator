@@ -55,6 +55,28 @@ test('sponsor payout respects minimum league and once-per-day cap',()=>{
  const s=fresh();W.migrate(s);s.world.reputation=25;W.act(s,'sponsor:apex');ended(s,'low',1,0);assert.equal(W.afterFight(s),0);assert.equal(s.world.reputation,26);ended(s,'pro',2,2);assert.equal(W.afterFight(s),300);assert.equal(s.world.reputation,27);ended(s,'same-day',0,3);assert.equal(W.afterFight(s),0);s.hours+=24;ended(s,'next-day',0,3);assert.equal(W.afterFight(s),300);
 });
 test('city UI exposes costs, choices and correct locked controls without mutating state',()=>{
- const s=fresh();W.migrate(s);const before=structuredClone(s),ui=UI.renderCity(s);assert(ui.context.includes('ŞEHİRDEKİ HAYATIN'));assert(ui.content.includes('data-action="world"'));assert(ui.content.includes('−8 sağlık'));assert(ui.content.includes('4 İTİBAR GEREKLİ'));assert(ui.content.includes('oyun gününde en fazla bir kez'));assert.deepEqual(s,before);
+ const s=fresh();W.migrate(s);const before=structuredClone(s),ui=UI.renderCity(s),details=UI.eventDetails(s,'openmat'),sponsors=UI.renderCity(s,'sponsors');
+ assert(ui.context.includes('ŞEHİRDEKİ HAYATIN'));assert(details.includes('data-action="world"'));assert(details.includes('−8 sağlık'));assert(details.includes('45 sağlık'));assert(sponsors.content.includes('4 İTİBAR GEREKLİ'));assert(sponsors.content.includes('oyun gününde en fazla bir kez'));assert.deepEqual(s,before);
+});
+test('city tabs isolate their content and board cards only open event details',()=>{
+ const s=fresh();W.migrate(s);const board=UI.renderCity(s).content,sponsors=UI.renderCity(s,'sponsors').content,homes=UI.renderCity(s,'homes').content;
+ assert.equal((board.match(/data-action="city-event"/g)||[]).length,3);assert(board.includes('city-illustration'));assert(board.includes('data-action="city-events"'));
+ assert(board.includes('data-action="city-tab" data-value="sponsors"'));assert(board.includes('data-action="city-tab" data-value="homes"'));
+ assert(!board.includes('data-value="event:'));assert(!board.includes('sponsor-cards'));assert(!board.includes('home-cards'));
+ assert(sponsors.includes('sponsor-cards'));assert(!sponsors.includes('home-cards'));assert(!sponsors.includes('city-illustration'));assert(homes.includes('home-cards'));assert(!homes.includes('sponsor-cards'));
+ for(const event of W.opportunities(s))assert(board.includes('data-action="city-event" data-value="'+event.id+'"'));
+ assert.equal(UI.renderCity(s,'unknown').content,board);
+});
+test('event sheets preserve exact action IDs and disable unavailable choices',()=>{
+ const s=fresh();W.migrate(s);const event=W.opportunities(s).find(e=>e.id==='openmat');
+ for(const choice of event.choices)assert(UI.eventDetails(s,event.id).includes('data-value="event:'+event.id+':'+choice.id+'"'));
+ const countDisabled=html=>(html.match(/<button[^>]* disabled/g)||[]).length;
+ assert.equal(countDisabled(UI.eventDetails(s,event.id)),0);s.camp={dueAt:s.hours};assert.equal(countDisabled(UI.eventDetails(s,event.id)),2);s.camp=null;
+ s.energy=0;assert.equal(countDisabled(UI.eventDetails(s,event.id)),2);s.energy=90;
+ take(s,event,event.choices[0]);assert.equal(countDisabled(UI.eventDetails(s,event.id)),2);assert(UI.eventDetails(s,event.id).includes('Bugünkü şehir fırsatını kullandın'));
+});
+test('city notice and invalid event IDs cannot inject markup into the UI',()=>{
+ const s=fresh();W.migrate(s);s.world.notice='<img src=x onerror="alert(1)">';const html=UI.renderCity(s).content;
+ assert(html.includes('&lt;img'));assert(!html.includes('<img'));assert(!UI.eventDetails(s,'<script>alert(1)</script>').includes('<script>'));
 });
 console.log(checks+' world checks passed');

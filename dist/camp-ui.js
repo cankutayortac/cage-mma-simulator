@@ -1,5 +1,5 @@
-import * as E from './engine.js?v=0.4.0';
-import * as C from './camp.js?v=0.4.0';
+import * as E from './engine.js?v=0.5.0';
+import * as C from './camp.js?v=0.5.0';
 
 const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>'₺'+Math.round(n).toLocaleString('tr-TR');

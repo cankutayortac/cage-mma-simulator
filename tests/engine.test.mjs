@@ -113,7 +113,7 @@ test('new training is slower, preview is exact and repeated sessions diminish',(
 test('old saves keep stats, techniques, cash and unlocked leagues on migration',()=>{
  for(const wins of [0,2,3,6,7,12,13,20]){
   const s=fresh();s.wins=wins;s.cash=1800;s.skills.boxing=75;for(const m of E.MOVES)s.moves[m.id]=2;
-  for(const k of ['loadout','leagueWins','fatigue','camp','trainingDay'])delete s[k];
+  for(const k of ['loadout','leagueWins','fatigue','camp','trainingDay','world','competition','objectives'])delete s[k];
   const old=E.league(s),skills=structuredClone(s.skills),moves=structuredClone(s.moves);assert(E.validSave(s));E.migrate(s);
   assert.equal(s.version,1);assert.equal(s.cash,1800);assert.equal(s.wins,wins);assert.deepEqual(s.skills,skills);assert.deepEqual(s.moves,moves);assert.equal(E.league(s),old);assert.equal(s.loadout.length,4);assert(E.validSave(s));
   const once=JSON.stringify(s);E.migrate(s);assert.equal(JSON.stringify(s),once);
@@ -173,7 +173,7 @@ test('balanced fighters express boxing, kicking, wrestling and BJJ identities',(
  assert(counts.wrestling.takedown>counts.boxing.takedown*2);assert(counts.bjj.submission/(counts.bjj.submission+counts.bjj.ground)>counts.wrestling.submission/(counts.wrestling.submission+counts.wrestling.ground)*1.5);assert(counts.wrestling.ground>counts.boxing.ground*2);
 });
 test('malformed optional progression, equipment and preparation fields are rejected',()=>{
- const variants=[s=>s.loadout=['hook'],s=>s.loadout=['laser'],s=>{s.moves.hook=2;s.loadout=['hook','hook']},s=>s.leagueWins=[1],s=>s.leagueWins=[-1,0,0,0],s=>s.fatigue=101];
+ const variants=[s=>s.loadout=['hook'],s=>s.loadout=['laser'],s=>{s.moves.hook=2;s.loadout=['hook','hook']},s=>s.leagueWins=[1],s=>s.leagueWins=[-1,0,0,0],s=>s.fatigue=101,s=>s.objectives={claimed:['fake-goal']},s=>s.competition.ranks=[9]];
  for(const change of variants){const s=fresh();change(s);assert(!E.validSave(s))}
  const good=fresh();ready(good);
  for(const change of [f=>f.playerMoves=['laser'],f=>f.performance=[1,2],f=>f.prep.distance=2,f=>f.enemy.moves=['laser']]){const s=structuredClone(good);change(s.fight);assert(!E.validSave(s))}
