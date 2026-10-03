@@ -1,4 +1,4 @@
-import * as Camp from './camp.js?v=0.4.0';
+import * as Camp from './camp.js?v=0.5.0';
 
 const clamp=(n,min=0,max=100)=>Math.min(max,Math.max(min,n));
 const day=s=>Math.floor(s.hours/24)+1;

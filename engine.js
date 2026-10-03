@@ -1,5 +1,7 @@
-import * as Camp from './camp.js?v=0.4.0';
-import * as World from './world.js?v=0.4.0';
+import * as Camp from './camp.js?v=0.5.0';
+import * as World from './world.js?v=0.5.0';
+import * as Competition from './competition.js?v=0.5.0';
+import * as Objectives from './objectives.js?v=0.5.0';
 
 export const KEY='cage-career-v1';
 export const LABELS={boxing:'Boks',kickboxing:'Kickboks',wrestling:'Güreş',bjj:'Brazilian Jiu-Jitsu',stamina:'Kondisyon',strength:'Kuvvet'};
@@ -24,7 +26,7 @@ export function style(s){const skills=s.skills||s;return STYLES.reduce((best,key
 
 export function initial(){return migrate({version:1,name:'Çaylak',cash:250,earned:0,hours:8,energy:90,food:75,sleep:85,health:100,skills:{boxing:15,kickboxing:12,wrestling:12,bjj:12,stamina:18,strength:12},gym:0,ownedGyms:[0],coach:0,ownedCoaches:[0],wins:0,losses:0,draws:0,sessions:0,helpDay:0,moves:{},history:[],fight:null,seed:Math.floor(Math.random()*2147483646)+1});}
 export function migrate(s){
- Camp.migrate(s);World.migrate(s);
+ Camp.migrate(s);World.migrate(s);Objectives.migrate(s);
  if(s.loadout===undefined)s.loadout=MOVES.filter(m=>s.moves[m.id]>=2).slice(0,4).map(m=>m.id);
  if(s.leagueWins===undefined){
   const old=legacyLeague(s);s.leagueWins=[0,0,0,0];
@@ -32,12 +34,12 @@ export function migrate(s){
   for(let tier=0;tier<old;tier++)s.leagueWins[tier]=Math.max(s.leagueWins[tier],PROMOTION_WINS[tier]);
   s.leagueWins[old]=Math.max(s.leagueWins[old],s.wins-LEAGUES[old].min);
  }
- return s;
+ Competition.migrate(s);return s;
 }
 const validMoves=x=>Array.isArray(x)&&x.length<=4&&new Set(x).size===x.length&&x.every(id=>MOVES.some(m=>m.id===id));
 const validSkills=x=>x&&Object.keys(LABELS).every(k=>Number.isFinite(x[k])&&x[k]>=0&&x[k]<=100);
 const validPrep=(x,max=1)=>x&&['takedownDefense','distance','groundEscape'].every(k=>Number.isFinite(x[k])&&x[k]>=0&&x[k]<=max);
-export function validSave(s){return !!(s?.version===1&&typeof s.name==='string'&&s.name.length<=24&&['cash','earned','hours','wins','losses','draws','sessions','helpDay'].every(k=>Number.isFinite(s[k])&&s[k]>=0)&&['energy','food','sleep','health'].every(k=>Number.isFinite(s[k])&&s[k]>=0&&s[k]<=100)&&validSkills(s.skills)&&Number.isInteger(s.gym)&&GYMS[s.gym]&&Number.isInteger(s.coach)&&COACHES[s.coach]&&Array.isArray(s.ownedGyms)&&s.ownedGyms.every(i=>Number.isInteger(i)&&GYMS[i])&&Array.isArray(s.ownedCoaches)&&s.ownedCoaches.every(i=>Number.isInteger(i)&&COACHES[i])&&s.moves&&MOVES.every(m=>s.moves[m.id]===undefined||[0,1,2].includes(s.moves[m.id]))&&(s.loadout===undefined||(validMoves(s.loadout)&&s.loadout.every(id=>s.moves[id]===2)))&&(s.leagueWins===undefined||(Array.isArray(s.leagueWins)&&s.leagueWins.length===4&&s.leagueWins.every(n=>Number.isInteger(n)&&n>=0)))&&Camp.validExtras(s)&&World.valid(s)&&Array.isArray(s.history)&&s.history.length<=80&&s.history.every(h=>h&&typeof h.name==='string'&&typeof h.method==='string'&&Number.isInteger(h.day)&&h.day>0&&Number.isFinite(h.reward)&&h.reward>=0&&[0,1,2,3].includes(h.tier)&&typeof h.won==='boolean'&&typeof h.draw==='boolean')&&Number.isFinite(s.seed)&&(!s.fight||validFight(s.fight)));}
+export function validSave(s){return !!(s?.version===1&&typeof s.name==='string'&&s.name.length<=24&&['cash','earned','hours','wins','losses','draws','sessions','helpDay'].every(k=>Number.isFinite(s[k])&&s[k]>=0)&&['energy','food','sleep','health'].every(k=>Number.isFinite(s[k])&&s[k]>=0&&s[k]<=100)&&validSkills(s.skills)&&Number.isInteger(s.gym)&&GYMS[s.gym]&&Number.isInteger(s.coach)&&COACHES[s.coach]&&Array.isArray(s.ownedGyms)&&s.ownedGyms.every(i=>Number.isInteger(i)&&GYMS[i])&&Array.isArray(s.ownedCoaches)&&s.ownedCoaches.every(i=>Number.isInteger(i)&&COACHES[i])&&s.moves&&MOVES.every(m=>s.moves[m.id]===undefined||[0,1,2].includes(s.moves[m.id]))&&(s.loadout===undefined||(validMoves(s.loadout)&&s.loadout.every(id=>s.moves[id]===2)))&&(s.leagueWins===undefined||(Array.isArray(s.leagueWins)&&s.leagueWins.length===4&&s.leagueWins.every(n=>Number.isInteger(n)&&n>=0)))&&Camp.validExtras(s)&&World.valid(s)&&Objectives.valid(s)&&Competition.valid(s)&&(!s.camp||Competition.validOpponent(s.camp.enemy,s.camp.tier)&&(s.camp.enemy.moves===undefined||validMoves(s.camp.enemy.moves)))&&Array.isArray(s.history)&&s.history.length<=80&&s.history.every(h=>h&&typeof h.name==='string'&&typeof h.method==='string'&&Number.isInteger(h.day)&&h.day>0&&Number.isFinite(h.reward)&&h.reward>=0&&[0,1,2,3].includes(h.tier)&&typeof h.won==='boolean'&&typeof h.draw==='boolean'&&(h.opponentId===undefined||Competition.knownOpponent(h.opponentId,h.tier)))&&Number.isFinite(s.seed)&&(!s.fight||validFight(s.fight)));}
 const EVENT_FIELDS=['outcome','technique','phaseBefore','phaseAfter','topBefore','topAfter'];
 const EVENT_OUTCOMES={idle:['rest'],guard:['rest'],punch:['hit','blocked','miss'],kick:['hit','blocked','miss'],takedown:['success','defended'],escape:['success','defended'],submission:['success','defended'],ground:['hit']};
 const EVENT_TECHNIQUES=['idle','guard','direct','bodykick','takedown','ground','escape','submission',...MOVES.map(m=>m.id)];
@@ -51,7 +53,7 @@ function validCorner(f){
 }
 function validAction(e){return !!(e&&typeof e.move==='string'&&Object.hasOwn(EVENT_OUTCOMES,e.move)&&EVENT_OUTCOMES[e.move].includes(e.outcome)&&[0,1].includes(e.attacker)&&EVENT_TECHNIQUES.includes(e.technique)&&['stand','ground'].includes(e.phaseBefore)&&['stand','ground'].includes(e.phaseAfter)&&[0,1].includes(e.topBefore)&&[0,1].includes(e.topAfter));}
 function validEvents(f){return f.events===undefined||(Array.isArray(f.events)&&f.events.length<=60&&f.events.every((e,i)=>validAction(e)&&Number.isInteger(e.tick)&&e.tick>0&&e.tick<=f.tick&&(i===0||e.tick>f.events[i-1].tick)&&e.round===Math.floor((e.tick-1)/20)+1&&typeof e.time==='string'&&/^[0-3]:[0-5]\d$/.test(e.time)&&typeof e.text==='string'&&e.text.length<=1000));}
-function validFight(f){const pair=(x,positive=false)=>Array.isArray(x)&&x.length===2&&x.every(v=>Number.isFinite(v)&&(!positive||v>0));return !!(f&&[0,1,2,3].includes(f.tier)&&pair(f.hp)&&pair(f.st)&&pair(f.score)&&pair(f.maxHp,true)&&pair(f.maxSt,true)&&['stand','ground'].includes(f.phase)&&[0,1].includes(f.top)&&f.enemy&&typeof f.enemy.name==='string'&&STYLES.includes(f.enemy.style)&&validSkills(f.enemy.skills)&&(f.enemy.moves===undefined||validMoves(f.enemy.moves))&&(f.playerMoves===undefined||validMoves(f.playerMoves))&&(f.prep===undefined||validPrep(f.prep))&&(f.performance===undefined||(pair(f.performance,true)&&f.performance.every(n=>n<=1)))&&Number.isInteger(f.tick)&&f.tick>=0&&f.tick<=60&&validCorner(f)&&['balanced','strike','ground','defend'].includes(f.tactic)&&typeof f.done==='boolean'&&typeof f.log==='string'&&f.last&&typeof f.last.move==='string'&&[0,1].includes(f.last.attacker)&&(EVENT_FIELDS.every(k=>f.last[k]===undefined)||validAction(f.last))&&validEvents(f)&&(!f.done||f.result&&[0,1,2].includes(f.result.winner)&&typeof f.result.method==='string'&&Number.isFinite(f.result.reward)&&(f.result.sponsorReward===undefined||Number.isFinite(f.result.sponsorReward)&&f.result.sponsorReward>=0)&&(f.result.reputationReward===undefined||Number.isInteger(f.result.reputationReward)&&f.result.reputationReward>=0&&f.result.reputationReward<=2)&&(f.result.worldApplied===undefined||typeof f.result.worldApplied==='boolean'))&&(f.done||f.tick<60));}
+function validFight(f){const pair=(x,positive=false)=>Array.isArray(x)&&x.length===2&&x.every(v=>Number.isFinite(v)&&(!positive||v>0));return !!(f&&[0,1,2,3].includes(f.tier)&&pair(f.hp)&&pair(f.st)&&pair(f.score)&&pair(f.maxHp,true)&&pair(f.maxSt,true)&&['stand','ground'].includes(f.phase)&&[0,1].includes(f.top)&&f.enemy&&typeof f.enemy.name==='string'&&STYLES.includes(f.enemy.style)&&validSkills(f.enemy.skills)&&Competition.validOpponent(f.enemy,f.tier)&&Competition.validResult(f.result)&&(f.enemy.moves===undefined||validMoves(f.enemy.moves))&&(f.playerMoves===undefined||validMoves(f.playerMoves))&&(f.prep===undefined||validPrep(f.prep))&&(f.performance===undefined||(pair(f.performance,true)&&f.performance.every(n=>n<=1)))&&Number.isInteger(f.tick)&&f.tick>=0&&f.tick<=60&&validCorner(f)&&['balanced','strike','ground','defend'].includes(f.tactic)&&typeof f.done==='boolean'&&typeof f.log==='string'&&f.last&&typeof f.last.move==='string'&&[0,1].includes(f.last.attacker)&&(EVENT_FIELDS.every(k=>f.last[k]===undefined)||validAction(f.last))&&validEvents(f)&&(!f.done||f.result&&[0,1,2].includes(f.result.winner)&&typeof f.result.method==='string'&&Number.isFinite(f.result.reward)&&(f.result.sponsorReward===undefined||Number.isFinite(f.result.sponsorReward)&&f.result.sponsorReward>=0)&&(f.result.reputationReward===undefined||Number.isInteger(f.result.reputationReward)&&f.result.reputationReward>=0&&f.result.reputationReward<=2)&&(f.result.worldApplied===undefined||typeof f.result.worldApplied==='boolean'))&&(f.done||f.tick<60));}
 export function rand(s){s.seed=(Math.imul(s.seed,1664525)+1013904223)>>>0;return s.seed/4294967296;}
 function spend(s,n){if(s.cash<n)throw Error(`Bunun için ₺${Math.ceil(n-s.cash)} daha gerekiyor.`);s.cash-=n;}
 function elapsed(s,h,e=0,f=0,sl=0){s.hours+=h;s.energy=clamp(s.energy+e);s.food=clamp(s.food+f);s.sleep=clamp(s.sleep+sl);}
@@ -100,15 +102,26 @@ export function recover(s,action){
 export function chooseGym(s,i){free(s);const g=GYMS[i];if(!g)throw Error('Geçersiz salon.');if(s.wins<g.wins)throw Error(`Bu salon için ${g.wins} galibiyet gerekiyor.`);if(!s.ownedGyms.includes(i)){spend(s,g.price);s.ownedGyms.push(i)}s.gym=i;return `${g.name} artık antrenman alanın.`;}
 export function chooseCoach(s,i){free(s);const c=COACHES[i];if(!c)throw Error('Geçersiz antrenör.');if(!s.ownedCoaches.includes(i)){spend(s,c.price);s.ownedCoaches.push(i)}s.coach=i;return i?`${c.name} köşene katıldı.`:'Kendi programına döndün.';}
 function opponentMoves(enemy){return MOVES.filter(m=>enemy.skills[m.skill]>=m.level).sort((a,b)=>(b.skill===enemy.style)-(a.skill===enemy.style)||b.level-a.level).slice(0,4).map(m=>m.id);}
-export function opponent(s,tier=league(s)){
- if(!Number.isInteger(tier)||!LEAGUES[tier])throw Error('Geçersiz lig.');
- const styles=['boxing','wrestling','kickboxing','bjj'],i=(s.wins+s.losses+s.draws)%8;
- const names=['Bora “Çekiç”','Mert Kaya','Aras “Bozkurt”','Deniz Akın','Kaan “Fırtına”','Eren Keskin','Leo Silva','Alex Volkov'];
- const specialist=styles[i%4],shapes={boxing:{boxing:8,kickboxing:-4,wrestling:-4,bjj:-6,stamina:1,strength:2},kickboxing:{boxing:-2,kickboxing:8,wrestling:-5,bjj:-4,stamina:3,strength:0},wrestling:{boxing:-4,kickboxing:-6,wrestling:8,bjj:2,stamina:2,strength:3},bjj:{boxing:-5,kickboxing:-5,wrestling:1,bjj:9,stamina:1,strength:-3}};
- const skills=Object.fromEntries(Object.keys(LABELS).map(k=>[k,clamp(LEAGUES[tier].base+(i%3)*1.5+shapes[specialist][k])]));
- const enemy={name:names[i],style:specialist,skills};enemy.moves=opponentMoves(enemy);return enemy;
+export function matchOffers(s,tier=league(s)){
+ const shapes={boxing:{boxing:8,kickboxing:-4,wrestling:-4,bjj:-6,stamina:1,strength:2},kickboxing:{boxing:-2,kickboxing:8,wrestling:-5,bjj:-4,stamina:3,strength:0},wrestling:{boxing:-4,kickboxing:-6,wrestling:8,bjj:2,stamina:2,strength:3},bjj:{boxing:-5,kickboxing:-5,wrestling:1,bjj:9,stamina:1,strength:-3}};
+ return Competition.offers(s,tier,CHAMPION_WINS).map(rival=>{
+  const skills=Object.fromEntries(Object.keys(LABELS).map(k=>[k,clamp(LEAGUES[tier].base+rival.offset+shapes[rival.style][k])]));
+  const enemy={id:rival.id,tier,name:rival.name,style:rival.style,skills,rank:rival.rank,reason:rival.reason,record:{...rival.record},qualifies:rival.qualifies};enemy.moves=opponentMoves(enemy);return enemy;
+ });
 }
-export function bookFight(s,tier=league(s)){free(s);if(!Number.isInteger(tier)||tier<0||tier>league(s))throw Error('Bu lig henüz açık değil.');const message=Camp.book(s,tier,opponent(s,tier));if(s.fight?.done)s.fight=null;return message;}
+export function opponent(s,tier=league(s)){return matchOffers(s,tier)[0];}
+export function isChampion(s){return(s.leagueWins?.[3]||0)>=CHAMPION_WINS&&Competition.summary(s,3).rank===1;}
+export function competitionSummary(s,tier=league(s)){
+ const earned=s.leagueWins?.[tier]||0,required=tier===3?CHAMPION_WINS:PROMOTION_WINS[tier];
+ return{...Competition.summary(s,tier),promotion:{earned,required,remaining:Math.max(0,required-earned)},championWins:s.leagueWins?.[3]||0,champion:isChampion(s),championshipRank:1};
+}
+export function bookFight(s,tier=league(s),opponentId){
+ free(s);if(!Number.isInteger(tier)||tier<0||tier>league(s))throw Error('Bu lig henüz açık değil.');
+ const offers=matchOffers(s,tier),enemy=opponentId===undefined?offers[0]:offers.find(offer=>offer.id===opponentId);
+ if(!enemy)throw Error('Bu rakip için şu an maç teklifi yok. Güncel üç tekliften birini seç.');
+ const message=Camp.book(s,tier,enemy);Object.assign(s.camp.enemy,{id:enemy.id,tier,rank:enemy.rank,reason:enemy.reason,record:{...enemy.record},qualifies:enemy.qualifies,moves:[...enemy.moves]});
+ if(s.fight?.done)s.fight=null;return message;
+}
 export function cancelCamp(s){free(s);return Camp.cancel(s);}
 export function waitForFight(s){free(s);return Camp.wait(s);}
 export function startFight(s,tier=s.camp?.tier??league(s)){
@@ -223,9 +236,10 @@ export function stepFight(s){
 function finishFight(s,winner,method){
  const f=s.fight;if(f.done)return;migrate(s);const old=league(s);f.done=true;
  const won=winner===0,draw=winner===2,reward=draw?Math.round(LEAGUES[f.tier].purse*.6):won?LEAGUES[f.tier].purse:LEAGUES[f.tier].loss;
- if(won){s.wins++;s.leagueWins[f.tier]++}else if(draw)s.draws++;else s.losses++;
+ f.result={winner,method,reward,promotion:false,champion:false};Competition.afterFight(s);
+ if(won){s.wins++;if(f.result.qualifiedWin)s.leagueWins[f.tier]++}else if(draw)s.draws++;else s.losses++;
  s.cash+=reward;s.earned+=reward;s.health=clamp(35+Math.max(0,f.hp[0])/f.maxHp[0]*60,25,95);s.energy=clamp(s.energy-8);
- f.result={winner,method,reward,promotion:league(s)>old,champion:s.leagueWins[3]>=CHAMPION_WINS&&f.tier===3&&won};
- s.history.unshift({name:f.enemy.name,won,draw,method,reward,day:day(s),tier:f.tier});s.history=s.history.slice(0,80);
+ Object.assign(f.result,{promotion:league(s)>old,champion:isChampion(s)&&f.tier===3&&won});
+ s.history.unshift({name:f.enemy.name,won,draw,method,reward,day:day(s),tier:f.tier,...(f.enemy.id?{opponentId:f.enemy.id}:{})});s.history=s.history.slice(0,80);
  World.afterFight(s);
 }
