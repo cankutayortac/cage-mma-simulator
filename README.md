@@ -20,6 +20,14 @@ Bağlantıyı Safari'de aç. İstersen Paylaş → Ana Ekrana Ekle yoluyla kısa
 - İzlenebilir 3B maçlar; dengeli, ayakta baskı, yere al ve savunma taktikleri.
 - Kuvvete bağlı görsel kas gelişimi, tarayıcı kaydı ve JSON kayıt aktarımı.
 
+## v0.2 güncellemesi
+
+- Aksiyon başına 3,6–6 saniyelik normal izleme, 0,5× / 1× / 2× hız ve gerçek animasyon duraklatma.
+- Darbe, savunma, yere alma ve yerde mücadele için farklı hareketler; okunabilir maç günlüğü.
+- Sabit ihtiyaç ve para çubuğu; portre içinde altı yetenek.
+- İşlemlerde kaydırma konumu ve sekmelerin son konumu korunur. Seri dokunma yakınlaştırması engellenir.
+- Eski kariyer kayıtları desteklenir; güncellemeyi görmek için sayfayı yenilemek yeterlidir.
+
 ## Bilgisayarında çalıştır
 
 Derleme veya paket kurulumu gerekmez. Python 3 ile depo klasöründe:
@@ -49,7 +57,7 @@ Node.js 22 veya üstü ile:
 npm test
 ```
 
-13 kontrol; ekonomi, beceri ayrımı, hareket öğrenimi, maçın sonlanması, kayıt devamlılığı, ödülün tek kez verilmesi ve farklı tohumlarla 300 maç simülasyonunu kapsar.
+26 kontrol; ekonomi, beceri ayrımı, hareket öğrenimi, maçın sonlanması, kayıt devamlılığı, ödülün tek kez verilmesi, aksiyon geçmişi ve farklı tohumlarla 300 maç simülasyonunu kapsar. Zamanlayıcı testleri duraklatma, hız değiştirme ve okuma süresini doğrular.
 
 ## Kaynak yapısı
 
@@ -58,8 +66,10 @@ npm test
 | `dist/engine.js` | İhtiyaçlar, ekonomi, antrenman ve maç simülasyonu |
 | `dist/scene.js` | 3B dövüşçüler, ortam ve animasyon |
 | `dist/app.js` | Arayüz, işlemler ve cihaz kaydı |
+| `dist/playback.js` | Okuma süresi, hız ve duraklatma zamanlayıcısı |
 | `dist/style.css` | Mobil ve masaüstü görünümü |
 | `tests/engine.test.mjs` | Oyun mantığı kontrolleri |
+| `tests/playback.test.mjs` | Maç izleme zamanlayıcısı kontrolleri |
 
 ## İlk sürümün sınırları
 
