@@ -1,5 +1,7 @@
 import * as T from './vendor/three.module.js';
 export function createScene(host){
+ const motionPreference=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+ let reducedMotion=!!motionPreference?.matches;motionPreference?.addEventListener?.('change',event=>{reducedMotion=event.matches});
  const scene=new T.Scene();scene.background=new T.Color(0x19241e);scene.fog=new T.Fog(0x19241e,10,25);
  const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;host.appendChild(renderer.domElement);
  const camera=new T.PerspectiveCamera(37,1,.1,60);camera.position.set(4,2.8,6);camera.lookAt(0,1.25,0);
@@ -12,17 +14,50 @@ export function createScene(host){
  const grid=new T.GridHelper(16,16,0x4b5d49,0x344439);grid.position.y=-.2;scene.add(grid);
  const gym=new T.Group();scene.add(gym);box(12,5,.16,materials.wall,gym,0,2,-3.7);for(let i=-5;i<=5;i++)box(.035,4,.05,materials.metal,gym,i,2,-3.58);for(let i=0;i<6;i++)box(12,.025,.03,materials.metal,gym,0,i*.75,-3.58);
  const windowMat=new T.MeshBasicMaterial({color:0x7c976e});box(2,1.5,.07,windowMat,gym,-2.8,2.7,-3.55);for(let i=0;i<3;i++)box(.055,1.6,.1,materials.metal,gym,-3.5+i*.7,2.7,-3.45);box(2,.055,.12,materials.metal,gym,-2.8,2.7,-3.42);
- const bag=new T.Group();gym.add(bag);bag.position.set(2.5,0,-1.4);capsule(.35,1.1,materials.black,bag,0,1.8,0);box(.72,.14,.73,materials.red,bag,0,1.55,0);box(.025,1.2,.025,materials.metal,bag,0,3,0);box(.05,3.8,.05,materials.metal,bag,.75,1.8,0);box(.8,.05,.05,materials.metal,bag,.4,3.5,0);
+ const bag=new T.Group();gym.add(bag);bag.position.set(2.5,0,-1.4);
+ const bagSwing=new T.Group();bagSwing.position.y=3.35;bag.add(bagSwing);
+ capsule(.32,1.05,materials.black,bagSwing,0,-1.55,0);box(.65,.14,.66,materials.red,bagSwing,0,-1.72,0);box(.02,1.04,.02,materials.metal,bagSwing,0,-.48,0);
+ box(.07,3.8,.07,materials.metal,bag,.75,1.8,0);box(.86,.065,.065,materials.metal,bag,.35,3.35,0);
+ const living=new T.Group();gym.add(living);living.position.set(-2.5,0,-2.25);
+ const homes=[new T.Group(),new T.Group(),new T.Group()];homes.forEach(group=>living.add(group));
+ const fabric=mat(0x596350),upholstery=mat(0x9aa59a),wood=mat(0x795945);
+ box(1.6,.2,.68,fabric,homes[0],0,.12,0);box(.48,.12,.56,materials.black,homes[0],-.46,.27,0);box(.44,.52,.4,wood,homes[0],1.03,.26,-.1);
+ box(1.7,.36,.7,materials.black,homes[1],0,.31,0);box(1.75,.65,.18,fabric,homes[1],0,.67,-.29);box(.15,.52,.7,fabric,homes[1],-.83,.47,0);box(.15,.52,.7,fabric,homes[1],.83,.47,0);
+ box(1.95,.3,.8,upholstery,homes[2],0,.34,0);box(2,.58,.16,upholstery,homes[2],0,.67,-.32);box(.15,.55,.8,upholstery,homes[2],-.96,.45,0);box(.15,.55,.8,upholstery,homes[2],.96,.45,0);
+ box(.45,.78,.42,materials.black,homes[2],1.28,.39,-.08);box(.51,.04,.48,wood,homes[2],1.28,.8,-.08);
+ const homeGlow=box(2.5,.035,.03,new T.MeshBasicMaterial({color:0xb5df89}),homes[2],0,1.65,-.9);
+
  for(let j=0;j<2;j++){const db=new T.Group();db.position.set(-1.65+j*.8,.11,1);db.rotation.y=.3;gym.add(db);const bar=mesh(new T.CylinderGeometry(.035,.035,.55,8),materials.metal,db);bar.rotation.z=Math.PI/2;for(const x of [-.25,.25]){const plate=mesh(new T.CylinderGeometry(.13,.13,.12,8),materials.black,db,x,0,0);plate.rotation.z=Math.PI/2}}
  const cage=new T.Group();scene.add(cage);cage.visible=false;const cageMat=new T.LineBasicMaterial({color:0x81977b,transparent:true,opacity:.22});for(let i=0;i<8;i++){const a=i*Math.PI/4,b=(i+1)*Math.PI/4;const x=Math.cos(a)*4,z=Math.sin(a)*4,nx=Math.cos(b)*4,nz=Math.sin(b)*4;if(z<1.5)capsule(.055,2.35,materials.metal,cage,x,1.18,z);for(let k=0;k<3&&z<1.5&&nz<1.5;k++){const pts=[new T.Vector3(x,.4+k*.85,z),new T.Vector3(nx,.4+k*.85,nz)];cage.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),cageMat))}if(z<1||nz<1){for(let q=0;q<=14;q++){let f=q/14;let vx=x+(nx-x)*f,vz=z+(nz-z)*f;const pts=[new T.Vector3(vx,0,vz),new T.Vector3(vx,2.35,vz)];cage.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),cageMat))}}}
  const ring=mesh(new T.RingGeometry(2.7,2.74,8),new T.MeshBasicMaterial({color:0x667653,side:T.DoubleSide}),scene,0,-.018,0);ring.rotation.x=-Math.PI/2;
+ // Back-row spectators use two shared instance buffers, keeping the mobile draw cost low.
+ const crowd=new T.Group();scene.add(crowd);const audienceCount=42,audienceMatrix=new T.Object3D();
+ const crowdBodies=new T.InstancedMesh(new T.CapsuleGeometry(.13,.42,2,5),mat(0x344242),audienceCount);
+ const crowdHeads=new T.InstancedMesh(new T.SphereGeometry(.12,6,5),mat(0x9c806b),audienceCount);
+ crowd.add(crowdBodies,crowdHeads);
+ for(let i=0;i<audienceCount;i++){
+  const row=i%2,angle=Math.PI*1.06+(i/(audienceCount-1))*Math.PI*.9,radius=4.65+row*.48;
+  audienceMatrix.position.set(Math.cos(angle)*radius,.49+row*.2,Math.sin(angle)*radius);audienceMatrix.scale.set(1,.9+(i%4)*.08,1);audienceMatrix.updateMatrix();crowdBodies.setMatrixAt(i,audienceMatrix.matrix);
+  crowdBodies.setColorAt(i,new T.Color([0x4c6670,0x66544a,0x46584f,0x656359][i%4]));
+  audienceMatrix.position.y+=.46;audienceMatrix.scale.setScalar(1);audienceMatrix.updateMatrix();crowdHeads.setMatrixAt(i,audienceMatrix.matrix);
+ }
+ crowdBodies.instanceMatrix.needsUpdate=true;crowdHeads.instanceMatrix.needsUpdate=true;
+ const arenaLamps=new T.Group();scene.add(arenaLamps);const lampMaterial=new T.MeshBasicMaterial({color:0xc6ed67});
+ for(const x of [-3.3,0,3.3]){box(1.35,.055,.08,lampMaterial,arenaLamps,x,3.45,-3.8);box(.055,3.35,.06,materials.metal,arenaLamps,x,1.7,-3.88)}
+ const impactGroup=new T.Group();scene.add(impactGroup);const sparks=[];
+ const sparkGeometry=new T.OctahedronGeometry(.035,0);
+ for(let i=0;i<12;i++){const material=new T.MeshBasicMaterial({color:0xf1e3ad,transparent:true,opacity:0,depthWrite:false});const spark=mesh(sparkGeometry,material,impactGroup);spark.castShadow=false;spark.visible=false;sparks.push({mesh:spark,velocity:new T.Vector3(),life:0,maxLife:.45})}
+ const impactRing=mesh(new T.RingGeometry(.07,.095,24),new T.MeshBasicMaterial({color:0xffecc2,transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}),impactGroup);impactRing.castShadow=false;impactRing.visible=false;let ringLife=0,cameraKick=0,trainingContactCycle=-1;
  function fighter(color,skin){const root=new T.Group();scene.add(root);const pivot=new T.Group();pivot.position.y=1;root.add(pivot);const body=new T.Group();body.position.y=-1;pivot.add(body);const shorts=mat(color);const torso=mesh(new T.CylinderGeometry(.38,.25,.7,8),skin,body,0,1.34,0);torso.scale.z=.65;const chest=[];for(const s of [-1,1]){const pec=mesh(new T.SphereGeometry(.2,8,6),skin,body,s*.17,1.52,.14);pec.scale.set(1,.75,.55);chest.push(pec)}
  const waist=box(.54,.32,.35,shorts,body,0,.94,0);box(.55,.06,.36,materials.black,body,0,1.08,0);box(.045,.27,.365,materials.lime,body,.19,.95,0);
  capsule(.09,.08,skin,body,0,1.78,0);const head=new T.Group();head.position.set(0,1.99,0);body.add(head);const skull=mesh(new T.SphereGeometry(.215,10,8),skin,head);skull.scale.set(.84,1.17,.89);const hair=mesh(new T.SphereGeometry(.219,10,8,0,Math.PI*2,0,1.4),materials.black,head,0,.03,-.025);hair.scale.set(.86,1.13,.88);box(.2,.024,.02,materials.black,head,0,.015,.184);box(.055,.11,.08,skin,head,0,-.038,.195);box(.1,.018,.016,materials.black,head,0,-.12,.176);
  const arms=[],legs=[];for(const s of [-1,1]){const shoulder=new T.Group();shoulder.position.set(s*.39,1.62,0);body.add(shoulder);const upper=capsule(.105,.25,skin,shoulder,0,-.16,0);mesh(new T.SphereGeometry(.135,8,6),skin,shoulder,0,0,0);const elbow=new T.Group();elbow.position.set(0,-.36,0);shoulder.add(elbow);capsule(.085,.24,skin,elbow,0,-.15,0);const glove=capsule(.112,.06,materials.black,elbow,0,-.34,0);box(.2,.055,.21,shorts,elbow,0,-.27,0);arms.push({shoulder,elbow,upper,glove});const hip=new T.Group();hip.position.set(s*.175,.85,0);body.add(hip);capsule(.125,.26,skin,hip,0,-.18,0);capsule(.102,.1,shorts,hip,0,-.07,0);const knee=new T.Group();knee.position.set(0,-.39,0);hip.add(knee);capsule(.085,.25,skin,knee,0,-.17,0);const foot=box(.17,.11,.29,skin,knee,0,-.38,.06);legs.push({hip,knee,foot})}return{root,pivot,body,torso,chest,arms,legs,head}}
  const player=fighter(0xa8c649,materials.skin),enemy=fighter(0xc46546,materials.skin2);enemy.root.visible=false;
- let state={mode:'home',strength:12,phase:'stand',top:0,move:'idle',attacker:0,pulse:0,gym:0,paused:false,playbackRate:1},view=0,clock=0;
- let action=null,lastEventId=null,legacyPulse=0,last=performance.now();
+ let state={mode:'home',strength:12,phase:'stand',top:0,move:'idle',attacker:0,pulse:0,gym:0,home:0,tier:0,playerStyle:'boxing',enemyStyle:'boxing',paused:false,playbackRate:1},view=0,clock=0;
+ let action=null,lastEventId=null,legacyPulse=0,last=performance.now(),drillAction=null,lastDrillId=null,bagForce=0;
+ const handWeights=[];player.arms.forEach(arm=>{const weight=new T.Group();arm.glove.add(weight);const bar=mesh(new T.CylinderGeometry(.035,.035,.48,7),materials.metal,weight);bar.rotation.z=Math.PI/2;for(const x of [-.22,.22]){const plate=mesh(new T.CylinderGeometry(.13,.13,.1,8),materials.black,weight,x,0,0);plate.rotation.z=Math.PI/2}handWeights.push(weight)});
+ const ropePoints=Array.from({length:41},()=>new T.Vector3()),ropeGeometry=new T.BufferGeometry().setFromPoints(ropePoints);const skippingRope=new T.Line(ropeGeometry,new T.LineBasicMaterial({color:0xc6ed67}));player.root.add(skippingRope);skippingRope.visible=false;
+ const arenaPosition={angle:0,x:0,z:0},bagTarget=new T.Vector3();
  const fighters=[player,enemy],cameraTarget=new T.Vector3(),lookTarget=new T.Vector3(0,1.14,0),desiredLook=new T.Vector3(),point=new T.Vector3();
  const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),mix=(a,b,p)=>a+(b-a)*p;
  const ease=(v)=>{const p=clamp(v);return p*p*(3-2*p)};
@@ -41,10 +76,39 @@ export function createScene(host){
     p.arms=[[-1.18,-.08,-.18,-.18],[-1.1,.08,.18,-.26]];p.legs=[[-1.3,0,.48,2],[-1.3,0,-.48,2]];
    }else{p.x=-side*.14;p.y=-.71;p.z=0;p.pitch=-Math.PI/2;p.headX=.08;
     p.arms=[[-.95,.1,-.15,-1.08],[-.95,-.1,.15,-1.08]];p.legs=[[-.65,0,.16,1.05],[-.65,0,-.16,1.05]];}
-  }else{const breath=Math.sin(clock*2.5+index*.8);p.bounce=breath*.011;p.twist=Math.sin(clock*1.15+index)*.018;
-   const step=Math.sin(clock*1.3+index*Math.PI);p.z+=step*.025;p.legs[0][0]+=step*.018;p.legs[1][0]-=step*.018;}
+  }else{
+   const style=index===0?state.playerStyle:state.enemyStyle,motion=reducedMotion?.25:1;
+   const breath=Math.sin(clock*2.5+index*.8),step=Math.sin(clock*3.4+index*Math.PI);
+   p.bounce=breath*.01+Math.abs(step)*.015*motion;p.twist=Math.sin(clock*1.15+index)*.025;
+   p.z+=step*.05*motion;p.legs[0][0]+=step*.08*motion;p.legs[1][0]-=step*.08*motion;p.legs[0][3]+=Math.max(0,step)*.13*motion;p.legs[1][3]+=Math.max(0,-step)*.13*motion;
+   if(style==='boxing'){p.pitch=.07;p.twist+=.11;p.arms=[[-1.1,-.1,-.1,-1.42],[-1.0,.12,.11,-1.51]];p.legs[0][0]-=.07;p.legs[1][0]+=.07;}
+   else if(style==='kickboxing'){p.x-=side*.06;p.pitch=-.015;p.arms=[[-1.22,0,-.18,-1.18],[-1.18,0,.2,-1.23]];p.legs[0][0]-=.08;p.legs[0][3]+=.12;p.legs[1][0]+=.1;}
+   else if(style==='wrestling'){p.y-=.095;p.pitch=.17;p.arms=[[-.83,-.16,-.3,-.83],[-.83,.16,.3,-.83]];p.legs[0][2]=.14;p.legs[1][2]=-.14;p.legs.forEach(l=>{l[0]-=.18;l[3]+=.34});}
+   else if(style==='bjj'){p.y-=.055;p.pitch=.11;p.arms=[[-1.0,-.14,-.23,-1.08],[-.94,.14,.23,-1.15]];p.legs.forEach(l=>{l[0]-=.08;l[3]+=.15});}
+   p.headY=-p.twist*.35;p.headX=-p.pitch*.24;
+  }
   return p;
  }
+ function placeInCage(poses,dt){
+  const motion=reducedMotion?.12:1,ground=state.phase==='ground'||action&&action.elapsed<action.duration*.8&&action.event.phaseBefore==='ground';
+  if(!ground&&!state.done){const alpha=1-Math.exp(-dt*2);arenaPosition.angle=mix(arenaPosition.angle,Math.sin(clock*.19)*.48*motion,alpha);arenaPosition.x=mix(arenaPosition.x,Math.sin(clock*.27)*.34*motion,alpha);arenaPosition.z=mix(arenaPosition.z,Math.sin(clock*.21+.4)*.3*motion,alpha);}
+  const angle=arenaPosition.angle,co=Math.cos(angle),si=Math.sin(angle),centerX=arenaPosition.x,centerZ=arenaPosition.z;
+  return poses.map((p,index)=>{const x=p.x,z=p.z;p.x=centerX+x*co+z*si;p.z=centerZ-x*si+z*co;p.yaw+=angle;
+   if(!ground&&p.pitch>-.3&&p.pitch<.3&&!state.done){const range=Math.sin(clock*.8+index*.3)*.055*motion;p.x-=direction(index)*range*co;p.z+=direction(index)*range*si;}
+   return p;});
+ }
+ function contactEffect(position,quality=1){
+  const amount=reducedMotion?3:10;
+  for(let i=0;i<sparks.length;i++){const spark=sparks[i];if(i>=amount){spark.life=0;spark.mesh.visible=false;continue}const angle=i/amount*Math.PI*2;spark.life=spark.maxLife=.28+(i%3)*.055;spark.mesh.visible=true;spark.mesh.position.copy(position);spark.mesh.scale.setScalar(.7+quality*.65);spark.velocity.set(Math.cos(angle)*(.3+quality*.45),.25+Math.sin(angle)*.45,(i%2?1:-1)*.22);spark.mesh.material.opacity=.85;}
+  ringLife=.28;impactRing.visible=true;impactRing.position.copy(position);impactRing.quaternion.copy(camera.quaternion);impactRing.scale.setScalar(.8);impactRing.material.opacity=.5;
+  if(!reducedMotion)cameraKick=Math.min(.11,.045+quality*.045);
+ }
+ function updateEffects(dt){
+  for(const spark of sparks){if(spark.life<=0)continue;spark.life=Math.max(0,spark.life-dt);spark.mesh.visible=spark.life>0;spark.mesh.position.addScaledVector(spark.velocity,dt);spark.velocity.y-=dt*.8;spark.mesh.material.opacity=spark.life/spark.maxLife*.85;}
+  if(ringLife>0){ringLife=Math.max(0,ringLife-dt);impactRing.visible=ringLife>0;impactRing.scale.setScalar(1+(1-ringLife/.28)*3);impactRing.material.opacity=ringLife/.28*.5;impactRing.quaternion.copy(camera.quaternion);}
+  cameraKick*=Math.exp(-dt*13);
+ }
+
  function blendPose(a,b,p){const out={};for(const key of Object.keys(a)){out[key]=Array.isArray(a[key])?a[key].map((limb,i)=>limb.map((value,j)=>mix(value,b[key][i][j],p))):mix(a[key],b[key],p)}return out}
  function towardsArm(p,arm,rotation,amount){for(let j=0;j<4;j++)p.arms[arm][j]=mix(p.arms[arm][j],rotation[j],amount)}
  function towardsLeg(p,leg,rotation,amount){for(let j=0;j<4;j++)p.legs[leg][j]=mix(p.legs[leg][j],rotation[j],amount)}
@@ -54,18 +118,18 @@ export function createScene(host){
    const guard=beat(t,.15,.38,.9);towardsArm(p,0,[-1.37,-.12,-.15,-1.12],guard);towardsArm(p,1,[-1.37,.12,.15,-1.12],guard);p.pitch-=hit*.07;p.x-=side*hit*.065;
    if(event.move==='kick'&&event.technique==='lowkick')towardsLeg(p,0,[-.8,0,.17,1.25],guard);
   }else if(event.outcome==='miss'){p.z+=hit*.24;p.pitch-=hit*.19;p.headY+=hit*.2;p.x-=side*hit*.08;
-  }else{p.pitch-=hit*(event.move==='kick'?.17:.11);p.roll+=hit*.06;p.headX-=hit*.15;p.headY+=hit*.12;p.x-=side*hit*.09;}
+  }else{p.pitch-=hit*(event.move==='kick'?.22:.15);p.roll+=hit*.09;p.headX-=hit*.18;p.headY+=hit*.18;p.x-=side*hit*.15;p.legs[1][0]+=hit*.12;p.legs[1][3]+=hit*.1;}
  }
  function punch(p,t,event){
   const technique=event.technique||'direct',side=direction(event.attacker),wind=beat(t,.015,.19,.4),reach=ramp(t,.2,.4)*(1-ramp(t,.55,.9));
-  p.x+=side*(reach*.30-wind*.055);p.twist+=wind*.11-reach*.2;p.pitch+=reach*.04;
+  p.x+=side*(reach*.51-wind*.08);p.twist+=wind*.16-reach*.23;p.pitch+=reach*.065;p.headY-=reach*.08;p.legs[1][3]+=wind*.09;
   if(technique==='combo'){
-   const left=beat(t,.10,.29,.52),right=beat(t,.41,.60,.86);towardsArm(p,0,[-1.93,-.05,-.04,.06],left);towardsArm(p,1,[-1.91,.08,.06,.04],right);p.twist+=left*.14-right*.16;p.x+=side*right*.06;
+   const left=beat(t,.10,.29,.52),right=beat(t,.41,.60,.86);towardsArm(p,0,[-1.93,-.05,.28,.06],left);towardsArm(p,1,[-1.91,.08,-.25,.04],right);p.twist+=left*.14-right*.16;p.x+=side*right*.06;
   }else if(technique==='hook'){
    towardsArm(p,1,[-1.08,-.2,.65,-1.3],wind);towardsArm(p,1,[-1.72,-.62,.22,-.88],reach);p.twist-=reach*.29;p.roll-=reach*.045;p.x+=side*reach*.08;
   }else if(technique==='uppercut'){
-   towardsArm(p,1,[-.45,0,.18,-.8],wind);towardsArm(p,1,[-1.56,.05,.08,-1.36],reach);p.y-=wind*.07;p.y+=reach*.035;p.pitch-=reach*.08;p.x+=side*reach*.08;
-  }else{towardsArm(p,0,[-1.94,-.03,-.04,.055],reach);p.twist+=reach*.10;}
+   towardsArm(p,1,[-.45,0,.18,-.8],wind);towardsArm(p,1,[-1.56,.02,-.24,-1.24],reach);p.y-=wind*.07;p.y+=reach*.035;p.pitch-=reach*.08;p.x+=side*reach*.20;
+  }else{towardsArm(p,0,[-1.94,-.03,.32,.055],reach);p.twist+=reach*.10;}
   towardsLeg(p,0,[-.34,0,.07,.36],reach);towardsLeg(p,1,[.25,0,-.07,.28],reach);
  }
  function kick(p,t,event){
@@ -114,16 +178,37 @@ export function createScene(host){
  }
  function homePose(){
   const p=basePose(0);p.x=0;p.z=0;p.yaw=-.25;p.twist=Math.sin(clock)*.02;p.headY=Math.sin(clock*.4)*.06;p.arms=[[-.5,0,-.12,-1.55],[-.5,0,.12,-1.55]];
-  if(state.mode==='train'){
-   if(state.move==='run'||state.move==='rope'){
-    const rope=state.move==='rope';p.y=Math.abs(Math.sin(clock*7))*(rope?.13:.045);p.pitch=.06;
-    p.legs.forEach((l,i)=>{l[0]=rope?-.16:Math.sin(clock*7+i*Math.PI)*.55;l[3]=rope?.27:Math.max(.2,-Math.sin(clock*7+i*Math.PI)*.8)});
-    p.arms.forEach((a,i)=>{a[0]=rope?-.38+Math.sin(clock*7)*.14:Math.sin(clock*7+i*Math.PI)*.56-.5;a[2]=(i===0?-1:1)*(rope?.25:.1);a[3]=rope?-1.05:-1.35});
-   }else if(state.move==='strength'){
-    const squat=(Math.sin(clock*2.3)+1)/2;p.y=-.08-squat*.2;p.pitch=.12;p.legs.forEach(l=>{l[0]=-.35-squat*.32;l[3]=.65+squat*.53});p.arms=[[-1.2,0,-.08,-.6],[-1.2,0,.08,-.6]];
-   }else{const reach=(Math.sin(clock*4.2)+1)/2;towardsArm(p,1,[-1.85,0,.06,.02],reach);p.twist-=reach*.15;}
+  const training=state.mode==='train'||state.mode==='drill';
+  if(!training)return p;
+  const active=state.mode==='train'||!!drillAction&&drillAction.elapsed<drillAction.duration;
+  const t=state.mode==='train'?(clock%1.25)/1.25:drillAction?clamp(drillAction.elapsed/drillAction.duration):0;
+  const quality=state.mode==='train'?1:(drillAction?.quality??0)/100,effort=active?Math.sin(t*Math.PI)*(.35+.65*quality):0;
+  const conditioning=['run','stamina','rope'].includes(state.move);
+  if(conditioning){
+   const rope=state.move==='rope'||state.move==='stamina';p.y=effort*(rope?.17:.05);p.pitch=rope?.015:.13;
+   p.legs.forEach((leg,i)=>{leg[0]=rope?-.16:Math.sin(t*Math.PI*2+i*Math.PI)*.55*effort;leg[3]=rope?.27+effort*.12:Math.max(.2,-Math.sin(t*Math.PI*2+i*Math.PI)*.8)*Math.max(.3,effort)});
+   p.arms.forEach((arm,i)=>{arm[0]=rope?-.32+effort*.16:Math.sin(t*Math.PI*2+i*Math.PI)*.56*effort-.5;arm[2]=(i===0?-1:1)*(rope?.28:.1);arm[3]=rope?-.65:-1.35});
+  }else if(state.move==='strength'){
+   p.y=-.035-effort*.18;p.pitch=.04+effort*.10;p.legs.forEach(leg=>{leg[0]=-.23-effort*.28;leg[3]=.4+effort*.48});
+   p.arms=[[-.22-effort*.16,0,-.12,-.28-effort*1.75],[-.22-effort*.16,0,.12,-.28-effort*1.75]];p.headX=-effort*.06;
+  }else if(state.move==='wrestling'){
+   p.y=-effort*.34;p.pitch=.1+effort*.38;p.x=-effort*.2;p.legs.forEach((leg,i)=>{leg[0]=-.26-effort*.5;leg[3]=.45+effort*.8;leg[2]=i?-.19:.19});p.arms=[[-.78-effort*.5,-.08,-.23,-.82],[-.78-effort*.5,.08,.23,-.82]];
+  }else if(state.move==='bjj'){
+   const ground=basePose(0,'ground',1);ground.x=0;ground.z=0;ground.yaw=.35;ground.y+=effort*.14;ground.roll+=effort*.24;ground.twist+=effort*.15;ground.legs[0][0]-=effort*.25;ground.legs[1][3]+=effort*.25;return ground;
+  }else{
+   p.x=-.43;p.z=.02;p.yaw=Math.PI/2;p.arms=[[-1.05,0,-.12,-1.35],[-1.05,0,.12,-1.35]];
+   if(active){const event={attacker:0,technique:state.move==='kickboxing'?'bodykick':'direct'};if(state.move==='kickboxing')kick(p,t,event);else punch(p,t,event);p.headY-=effort*.08;}
   }
   return p;
+ }
+ function updateTrainingProps(dt){
+  const training=state.mode==='train'||state.mode==='drill',striking=training&&['boxing','kickboxing'].includes(state.move),conditioning=training&&['rope','stamina'].includes(state.move);
+  handWeights.forEach(weight=>weight.visible=training&&state.move==='strength');skippingRope.visible=conditioning;
+  bagTarget.set(striking?1.15:2.5,0,striking?.02:-1.4);bag.position.lerp(bagTarget,1-Math.exp(-dt*7));
+  bagForce*=Math.exp(-dt*3.8);bagSwing.rotation.z=Math.sin(clock*11)*bagForce*.23;bagSwing.rotation.x=Math.cos(clock*9)*bagForce*.05;
+  if(conditioning){const active=state.mode==='train'||!!drillAction&&drillAction.elapsed<drillAction.duration;const t=state.mode==='train'?(clock%1.25)/1.25:drillAction?clamp(drillAction.elapsed/drillAction.duration):0;const spin=active?t*Math.PI*2:Math.PI/2;
+   const vertices=ropeGeometry.attributes.position;for(let i=0;i<41;i++){const angle=i/40*Math.PI*2;vertices.setXYZ(i,Math.cos(angle)*.64,.94+Math.sin(angle)*1.04*Math.cos(spin),.05+Math.sin(angle)*1.04*Math.sin(spin))}vertices.needsUpdate=true;ropeGeometry.computeBoundingSphere();
+  }
  }
  function resultPoses(poses){
   if(!state.done||!state.result||action&&action.elapsed<action.duration+.25)return poses;
@@ -152,23 +237,59 @@ export function createScene(host){
  }
  function frame(now){
   requestAnimationFrame(frame);if(document.hidden){last=now;return}
-  const rawDt=Math.min((now-last)/1000,.05);last=now;const fight=state.mode==='fight',dt=fight&&state.paused?0:rawDt*(fight?clamp(Number(state.playbackRate)||1,.25,3):1);
-  clock+=dt;legacyPulse=Math.max(0,legacyPulse-dt*1.5);if(action&&fight)action.elapsed+=dt;
-  if(dt>0){if(fight){const poses=resultPoses(fightPoses());fighters.forEach((f,i)=>applyPose(f,poses[i],dt,i))}else applyPose(player,homePose(),dt,0);
-   bag.rotation.z=state.mode==='train'?Math.sin(clock*3)*.025:0;
-   const ground=fight&&state.phase==='ground'&&!state.done;
-   cameraTarget.set(fight?0:view%2?-4:3.7,fight?(ground?3.15:2.35):2.5,fight?(ground?4.8:4.75):5.5);camera.position.lerp(cameraTarget,1-Math.exp(-dt*3));
-   desiredLook.set(0,fight?(ground?.61:1.02):1.14,0);lookTarget.lerp(desiredLook,1-Math.exp(-dt*3));camera.lookAt(lookTarget);
+  const rawDt=Math.min((now-last)/1000,.05);last=now;const fight=state.mode==='fight';
+  const dt=state.paused?0:rawDt*(fight?clamp(Number(state.playbackRate)||1,.25,3):1);
+  clock+=dt;legacyPulse=Math.max(0,legacyPulse-dt*1.5);if(action&&fight)action.elapsed+=dt;if(drillAction&&state.mode==='drill')drillAction.elapsed+=dt;
+  if(dt>0){
+   if(fight){const poses=placeInCage(resultPoses(fightPoses()),dt);fighters.forEach((fighter,i)=>applyPose(fighter,poses[i],dt,i))}
+   else applyPose(player,homePose(),dt,0);
+   updateTrainingProps(dt);updateEffects(dt);
+   if(fight&&action&&!action.contacted&&action.elapsed>=action.duration*(action.event.move==='takedown'?.68:.43)){
+    action.contacted=true;const event=action.event,defender=fighters[1-event.attacker];
+    if(event.outcome==='hit'||event.move==='takedown'&&event.outcome==='success'){
+     if(event.move==='kick'&&event.technique==='lowkick')defender.legs[0].knee.getWorldPosition(point);
+     else if(event.move==='takedown'){defender.torso.getWorldPosition(point);point.y=Math.max(.15,point.y-.32)}
+     else if(event.move==='kick')defender.torso.getWorldPosition(point);else defender.head.getWorldPosition(point);
+     contactEffect(point,event.move==='kick'?.9:.65);
+    }
+   }
+   const striking=['boxing','kickboxing'].includes(state.move);
+   if(state.mode==='drill'&&drillAction&&!drillAction.contacted&&drillAction.elapsed>=drillAction.duration*.43){
+    drillAction.contacted=true;if(striking){bagForce=drillAction.quality/100;bag.updateMatrixWorld(true);point.set(-.28,1.68,0).applyMatrix4(bag.matrixWorld);if(drillAction.quality>=40)contactEffect(point,drillAction.quality/100)}
+   }else if(state.mode==='train'&&striking){const cycle=Math.floor(clock/1.25);if(clock%1.25>.53&&trainingContactCycle!==cycle){trainingContactCycle=cycle;bagForce=.65}}
+   const ground=fight&&state.phase==='ground'&&!state.done||(state.mode==='drill'||state.mode==='train')&&state.move==='bjj';
+   const drill=state.mode==='drill';
+   cameraTarget.set(fight?0:drill?2.85:view%2?-4:3.7,fight?(ground?3.05:2.42):ground?3.2:drill?2.5:2.5,fight?(ground?5.35:5.75):ground?4.9:drill?5.8:5.5);
+   cameraTarget.z-=cameraKick;cameraTarget.y+=cameraKick*.3;
+   camera.position.lerp(cameraTarget,1-Math.exp(-dt*4));
+   desiredLook.set(0,ground?.60:fight?1.06:drill?1.26:1.14,0);lookTarget.lerp(desiredLook,1-Math.exp(-dt*3));camera.lookAt(lookTarget);
+   if(!reducedMotion&&fight){const lightPulse=1+Math.sin(clock*.7)*.035;rim.intensity=2.1+state.tier*.4;key.intensity=(3.7+state.tier*.1)*lightPulse;}
   }
   renderer.render(scene,camera);
  }
  requestAnimationFrame(frame);
+ function atmosphere(){
+  const fight=state.mode==='fight',tier=clamp(Number(state.tier)||0,0,3),home=clamp(Number(state.home??state.worldHome??state.world?.home)||0,0,2);
+  cage.visible=fight;gym.visible=!fight;enemy.root.visible=fight;crowd.visible=fight;arenaLamps.visible=fight;
+  crowdBodies.count=crowdHeads.count=[10,18,30,42][tier];
+  lampMaterial.color.set([0x9b8b60,0xc6ed67,0x84c9ec,0xf0dca6][tier]);cageMat.opacity=[.16,.2,.23,.27][tier];
+  homes.forEach((group,i)=>group.visible=i===home);
+  const color=fight?[0x171914,0x141c1b,0x121c27,0x1d1928][tier]:home===2?0x1c2930:state.gym>1?0x172c32:0x19241e;
+  scene.background.set(color);scene.fog.color.set(color);
+  materials.wall.color.set(home===2?0x38494d:[0x24342b,0x39372c,0x233943,0x35434a][state.gym||0]);
+  materials.floor.color.set(fight?[0x3e4235,0x41483b,0x424c53,0x494253][tier]:0x323e33);
+  if(!fight){key.intensity=home===2?4.3:4;rim.intensity=home===2?2.8:3;}
+ }
+ atmosphere();
  return{set(next){
-  const wasFight=state.mode==='fight';Object.assign(state,next);const fight=state.mode==='fight';
+  const wasFight=state.mode==='fight',previousMode=state.mode;if(next.home===undefined&&(next.worldHome!==undefined||next.world?.home!==undefined))state.home=next.worldHome??next.world.home;Object.assign(state,next);const fight=state.mode==='fight';
   if(!fight){action=null;lastEventId=null;legacyPulse=0;}
   else if(next.eventId!=null&&next.eventId!==lastEventId){lastEventId=next.eventId;if(next.event)beginAction(next.event);}
   else if(next.eventId==null&&next.pulse>0&&(!wasFight||next.pulse>legacyPulse))beginAction({move:next.move,attacker:next.attacker,outcome:'hit',phaseBefore:state.phase,phaseAfter:state.phase,topBefore:state.top,topAfter:state.top});
   if(next.pulse!=null)legacyPulse=next.pulse;
-  cage.visible=fight;gym.visible=!fight;enemy.root.visible=fight;scene.background.set(fight?0x141c1b:state.gym>1?0x172c32:0x19241e);materials.wall.color.set([0x24342b,0x39372c,0x233943,0x35434a][state.gym||0]);
+  if(next.drillPulse&&next.drillPulse.id!==lastDrillId){lastDrillId=next.drillPulse.id;drillAction={elapsed:0,duration:state.move==='strength'?1.08:.92,quality:clamp(Number(next.drillPulse.quality)||0,0,100),contacted:false};}
+  if(state.mode!=='drill'){drillAction=null;lastDrillId=null;}
+  if(previousMode!==state.mode){sparks.forEach(spark=>{spark.life=0;spark.mesh.visible=false});ringLife=0;impactRing.visible=false;cameraKick=0;bagForce=0;}
+  atmosphere();
  },rotate(){view++}};
 }
